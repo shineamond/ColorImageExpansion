@@ -212,8 +212,8 @@ class SparseBayesExpander:
             self.b_beta = self.b_beta0 + 0.5 * sum_err
             self.a_beta = self.a_beta0 + 0.5 * N * self.D
 
-            norm_M = np.linalg.norm(self.M, 'fro')
-            delta = np.linalg.norm(self.M - prev_M, 'fro') / max(1e-12, norm_M)
+            prev_norm_M = np.linalg.norm(prev_M, 'fro')
+            delta = np.linalg.norm(self.M - prev_M, 'fro') / max(1e-12, prev_norm_M)
             self.n_iter_ = it + 1
 
             if self.verbose:
