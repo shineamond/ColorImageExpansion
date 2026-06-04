@@ -9,7 +9,7 @@ import numpy as np
 from demo import evaluate_models, fit_models, load_images_from_dir
 
 
-DEFAULT_A_ALPHA0 = '5,10,20,40,70,100,130,170,210'
+DEFAULT_A_ALPHA0 = '5,10,15,20,35,70,110,150,210'
 DEFAULT_MODES = 'rgb,yiq-luma,yiq-all'
 MODE_LABELS = {
     'rgb': 'RGB',

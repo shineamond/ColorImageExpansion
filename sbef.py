@@ -1,5 +1,3 @@
-from pyexpat import model
-
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 
@@ -23,7 +21,7 @@ class SparseBayesExpander:
     single alpha across all output rows.
     """
 
-    def __init__(self, D, Q, a_alpha0=20.0, b_alpha0=1e-6,
+    def __init__(self, D, Q, a_alpha0=20.0, b_alpha0=2e-8,
                  a_beta0=1e-6, b_beta0=1e-6, alpha_threshold=np.exp(20),
                  max_iter=200, tol=1e-6, verbose=False, symmetry='hv',
                  tie_alpha_across_rows=None):
@@ -134,14 +132,14 @@ class SparseBayesExpander:
             for d, q in pairs:
                 sum_w2 += W2[d, q]
             n_weights = len(pairs)
-            # a_new[gid] = self.a_alpha0 + 0.5 * n_weights
-            # b_new[gid] = self.b_alpha0 + 0.5 * sum_w2
+            a_new[gid] = self.a_alpha0 + 0.5 * n_weights
+            b_new[gid] = self.b_alpha0 + 0.5 * sum_w2
 
             # a_new[gid] = n_weights * self.a_alpha0 + 0.5 * n_weights
             # b_new[gid] = n_weights * self.b_alpha0 + 0.5 * sum_w2
 
-            a_new[gid] = n_weights * self.a_alpha0 - 0.5 * n_weights + 1.0
-            b_new[gid] = n_weights * self.b_alpha0 + 0.5 * sum_w2
+            # a_new[gid] = n_weights * self.a_alpha0 - 0.5 * n_weights + 1.0
+            # b_new[gid] = n_weights * self.b_alpha0 + 0.5 * sum_w2
 
         self.a_alpha = a_new
         self.b_alpha = b_new
@@ -254,9 +252,9 @@ class SparseBayesExpander:
     def support_size(self, union=True):
         """Return active support size.
 
-        ``union=True`` counts low-resolution input pixels that are active for at
-        least one row of W, matching the support-map view used in the paper's
-        figures.  ``union=False`` counts active coefficients over all rows.
+        union=True counts input pixels active in at least one output sub-pixel row.
+        union=False counts all active coefficients over all rows.
+        For Fig. 3-style support, use mean_row_support_size / paper_support_size.
         """
         if union:
             return int(np.sum(self.support_union_mask()))
