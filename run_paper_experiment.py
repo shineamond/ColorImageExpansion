@@ -87,6 +87,38 @@ def save_paper_style_plot(rows, modes, out_dir):
     plt.close()
 
 
+def paper_support_size(model):
+        return float(model.active_mask().sum(axis=1).mean())
+
+
+
+def save_support_grid(models, mode, a_alpha0, m, out_dir, d = 0):
+    if mode == 'rgb':
+        names = ['R', 'G', 'B']
+        filename = f'fig4_rgb_support_a{a_alpha0:g}.png'
+        title = f'RGB learned support, a_alpha0={a_alpha0:g}'
+    elif mode == 'yiq-all':
+        names = ['Y', 'I', 'Q']
+        filename = f'fig5_yiq_support_a{a_alpha0:g}.png'
+        title = f'YIQ learned support, a_alpha0={a_alpha0:g}'
+    else:
+        return
+
+    fig, axes = plt.subplots(1, 3, figsize=(7.5, 2.8))
+
+    for ax, name, model in zip(axes, names, models):
+        # support_map = model.support_union_mask().reshape((m, m)).astype(float)
+        support_map = model.active_mask()[d].reshape((m, m)).astype(float)
+        ax.imshow(support_map, cmap='gray', vmin=0, vmax=1)
+        ax.set_title(name)
+        ax.axis('off')
+
+    fig.suptitle(title)
+    fig.tight_layout()
+    fig.savefig(out_dir / filename, dpi=200)
+    plt.close(fig)
+
+
 def main():
     args = parse_args()
     modes = parse_csv_modes(args.modes)
@@ -107,15 +139,31 @@ def main():
             print(f'Running mode={mode}, a_alpha0={a_alpha0}')
             model_args = make_model_args(args, a_alpha0)
             models = fit_models(train_imgs, mode, model_args)
+
+            for ch, model in enumerate(models):
+                print(
+                    f'mode={mode}, a_alpha0={a_alpha0}, channel={ch}, '
+                    f'row_support_sizes={model.active_mask().sum(axis=1)}, '
+                    f'union_support_size={model.support_size()}'
+                )
+
+            if a_alpha0 in (20.0, 130.0):
+                save_support_grid(models, mode, a_alpha0, args.m, out_dir)
+
             learned_scores, cubic_scores, _ = evaluate_models(models, test_imgs, mode, args.r, args.m)
-            support_sizes = [model.support_size() for model in models]
+            # support_sizes = [model.support_size() for model in models]
+
+            row_support_sizes = [paper_support_size(model) for model in models]
+            union_support_sizes = [model.support_size() for model in models]
+
             row = {
                 'mode': mode,
                 'a_alpha0': a_alpha0,
                 'mean_psnr_learned': float(np.mean(learned_scores)),
                 'mean_psnr_cubic': float(np.mean(cubic_scores)),
-                'mean_support_size': float(np.mean(support_sizes)),
-                'support_sizes': ';'.join(str(s) for s in support_sizes),
+                'mean_support_size': float(np.mean(row_support_sizes)),
+                'support_sizes': ';'.join(f'{s:g}' for s in row_support_sizes),
+                'union_support_sizes': ';'.join(str(s) for s in union_support_sizes),
                 'n_train_images': len(train_imgs),
                 'n_test_images': len(test_imgs),
                 'r': args.r,

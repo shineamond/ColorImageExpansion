@@ -1,3 +1,5 @@
+from pyexpat import model
+
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
 
@@ -132,8 +134,14 @@ class SparseBayesExpander:
             for d, q in pairs:
                 sum_w2 += W2[d, q]
             n_weights = len(pairs)
-            a_new[gid] = self.a_alpha0 + 0.5 * n_weights
-            b_new[gid] = self.b_alpha0 + 0.5 * sum_w2
+            # a_new[gid] = self.a_alpha0 + 0.5 * n_weights
+            # b_new[gid] = self.b_alpha0 + 0.5 * sum_w2
+
+            # a_new[gid] = n_weights * self.a_alpha0 + 0.5 * n_weights
+            # b_new[gid] = n_weights * self.b_alpha0 + 0.5 * sum_w2
+
+            a_new[gid] = n_weights * self.a_alpha0 - 0.5 * n_weights + 1.0
+            b_new[gid] = n_weights * self.b_alpha0 + 0.5 * sum_w2
 
         self.a_alpha = a_new
         self.b_alpha = b_new
