@@ -327,7 +327,7 @@ def parse_args():
     parser.add_argument('--r', type=int, default=R)
     parser.add_argument('--m', type=int, default=PATCH_SIZE)
     parser.add_argument('--a-alpha0', type=float, default=A_ALPHA0)
-    parser.add_argument('--b-alpha0', type=float, default=1e-12)
+    parser.add_argument('--b-alpha0', type=float, default=2e-8)
     parser.add_argument('--a-beta0', type=float, default=1e-6)
     parser.add_argument('--b-beta0', type=float, default=1e-6)
     parser.add_argument('--max-iter', type=int, default=200)

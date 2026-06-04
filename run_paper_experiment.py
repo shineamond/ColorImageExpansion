@@ -52,7 +52,7 @@ def make_model_args(args, a_alpha0):
         r=args.r,
         m=args.m,
         a_alpha0=a_alpha0,
-        b_alpha0=1e-12,
+        b_alpha0=2e-8,
         a_beta0=1e-6,
         b_beta0=1e-6,
         max_iter=args.max_iter,
@@ -78,6 +78,8 @@ def save_paper_style_plot(rows, modes, out_dir):
 
     plt.xlabel('Support size (pixel)')
     plt.ylabel('PSNR (dB)')
+    plt.xticks([9, 25, 49, 81, 121])
+    plt.xlim(9, 121)
     plt.title('Performance of image expansion filters')
     plt.legend()
     plt.tight_layout()
