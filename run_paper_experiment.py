@@ -52,7 +52,7 @@ def make_model_args(args, a_alpha0):
         r=args.r,
         m=args.m,
         a_alpha0=a_alpha0,
-        b_alpha0=1e-6,
+        b_alpha0=1e-12,
         a_beta0=1e-6,
         b_beta0=1e-6,
         max_iter=args.max_iter,

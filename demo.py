@@ -92,9 +92,30 @@ def make_low_resolution(img, r):
 
 
 def cubic_expand(img, out_shape):
-    return transform.resize(
-        img, out_shape, order=3, anti_aliasing=False, preserve_range=True
-    ).astype(np.float64)
+    img = np.asarray(img, dtype=np.float64)
+
+    if img.ndim == 2:
+        in_h, in_w = img.shape
+        out_h, out_w = out_shape
+        r_h = out_h / in_h
+        r_w = out_w / in_w
+
+        yy = np.arange(out_h, dtype=np.float64) / r_h
+        xx = np.arange(out_w, dtype=np.float64) / r_w
+        coords = np.meshgrid(yy, xx, indexing='ij')
+
+        return ndimage.map_coordinates(
+            img,
+            coords,
+            order=3,
+            mode='nearest'
+        ).astype(np.float64)
+
+    channels = [
+        cubic_expand(img[:, :, c], out_shape[:2])
+        for c in range(img.shape[2])
+    ]
+    return np.stack(channels, axis=2)
 
 
 def extract_patches(channel, r=2, m=11, train_mode=False):
@@ -306,7 +327,7 @@ def parse_args():
     parser.add_argument('--r', type=int, default=R)
     parser.add_argument('--m', type=int, default=PATCH_SIZE)
     parser.add_argument('--a-alpha0', type=float, default=A_ALPHA0)
-    parser.add_argument('--b-alpha0', type=float, default=1e-6)
+    parser.add_argument('--b-alpha0', type=float, default=1e-12)
     parser.add_argument('--a-beta0', type=float, default=1e-6)
     parser.add_argument('--b-beta0', type=float, default=1e-6)
     parser.add_argument('--max-iter', type=int, default=200)
