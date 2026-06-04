@@ -25,6 +25,8 @@ scalar-channel model per RGB/YIQ channel, matching the paper's three schemes:
 - Paper-style horizontal/vertical symmetry constraints over `(d, q)` coefficient
   pairs: output sub-pixel index `d` and input-patch index `q` are mirrored
   together.
+- Low-resolution image generation as an explicit cubic-kernel anti-aliasing blur
+  followed by subsampling.
 - Training patch extraction that discards boundary low-resolution patches.
 - Test-time patch extraction with pixel-replication padding.
 - ARD support maps based on active alpha values, not mean absolute weights.
@@ -81,12 +83,14 @@ This runs `rgb`, `yiq-luma`, and `yiq-all` over the default sparsity sweep:
 Outputs are written to `paper_outputs/`:
 
 - `results.csv`
-- PSNR vs. support-size plots for each mode
+- `psnr_vs_support.png`, a combined RGB / YIQ / Y + cubic PSNR-vs-support plot
+  in the style of Fig. 3 in the paper
 
 ## Notes
 
 The paper states that the low-resolution images are made by cubic-kernel
-anti-aliasing and subsampling. This repo uses scikit-image's cubic `order=3`
-resampling consistently for that step. Small numerical differences from the
-original ICIP 2009 implementation are still possible because the paper does not
-specify every implementation detail of the cubic preprocessing kernel.
+anti-aliasing and subsampling. This repo keeps that preprocessing as two
+explicit steps: a separable scaled cubic convolution blur followed by decimation
+by the expansion factor. The paper does not specify every numerical detail of
+the cubic preprocessing kernel, so small differences from the original ICIP 2009
+implementation are still possible.
