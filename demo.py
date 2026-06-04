@@ -3,6 +3,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import ndimage
 from skimage import io, transform
 from skimage.metrics import peak_signal_noise_ratio as sk_psnr
 from skimage.util import view_as_windows
@@ -15,6 +16,7 @@ TEST_DIR = 'data/test'
 R = 2
 PATCH_SIZE = 11
 A_ALPHA0 = 20.0
+CUBIC_KERNEL_A = -0.5
 
 RGB_TO_YIQ = np.array([
     [0.299, 0.587, 0.114],
@@ -39,18 +41,54 @@ def crop_to_factor(img, r):
     return img[:(h // r) * r, :(w // r) * r]
 
 
-def make_low_resolution(img, r):
-    """Create the low-resolution image by cubic downsampling.
+def cubic_kernel(x, a=CUBIC_KERNEL_A):
+    """Keys cubic convolution kernel used for the anti-aliasing blur."""
+    x = np.abs(np.asarray(x, dtype=np.float64))
+    weights = np.zeros_like(x)
 
-    The paper says the high-resolution image is blurred by a cubic kernel for
-    anti-aliasing and then subsampled.  This implementation uses scikit-image's
-    order=3 anti-aliased resize consistently for that cubic downsampling step.
+    mask1 = x <= 1
+    weights[mask1] = (
+        (a + 2) * x[mask1] ** 3
+        - (a + 3) * x[mask1] ** 2
+        + 1
+    )
+
+    mask2 = (x > 1) & (x < 2)
+    weights[mask2] = (
+        a * x[mask2] ** 3
+        - 5 * a * x[mask2] ** 2
+        + 8 * a * x[mask2]
+        - 4 * a
+    )
+
+    return weights
+
+
+def cubic_antialias_filter(r):
+    """Return a scaled cubic low-pass kernel for decimation by factor r."""
+    if r < 1:
+        raise ValueError('r must be a positive integer')
+    radius = 2 * int(r)
+    offsets = np.arange(-radius, radius + 1, dtype=np.float64)
+    kernel = cubic_kernel(offsets / float(r)) / float(r)
+    kernel_sum = np.sum(kernel)
+    if not np.isfinite(kernel_sum) or abs(kernel_sum) < 1e-12:
+        raise ValueError(f'invalid cubic anti-aliasing kernel for r={r}')
+    return kernel / kernel_sum
+
+
+def make_low_resolution(img, r):
+    """Create the low-resolution image by cubic blur followed by subsampling.
+
+    The paper states this step as cubic-kernel anti-aliasing followed by
+    subsampling by the expansion factor.  This function keeps those two steps
+    explicit instead of using a combined resize call.
     """
-    h, w = img.shape[:2]
-    shape = (h // r, w // r) if img.ndim == 2 else (h // r, w // r, img.shape[2])
-    return transform.resize(
-        img, shape, order=3, anti_aliasing=True, preserve_range=True
-    ).astype(np.float64)
+    img = np.asarray(img, dtype=np.float64)
+    kernel = cubic_antialias_filter(r)
+    blurred = ndimage.convolve1d(img, kernel, axis=0, mode='nearest')
+    blurred = ndimage.convolve1d(blurred, kernel, axis=1, mode='nearest')
+    return blurred[::r, ::r, ...].astype(np.float64)
 
 
 def cubic_expand(img, out_shape):
