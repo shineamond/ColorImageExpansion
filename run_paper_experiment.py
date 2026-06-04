@@ -11,6 +11,11 @@ from demo import evaluate_models, fit_models, load_images_from_dir
 
 DEFAULT_A_ALPHA0 = '5,10,20,40,70,100,130,170,210'
 DEFAULT_MODES = 'rgb,yiq-luma,yiq-all'
+MODE_LABELS = {
+    'rgb': 'RGB',
+    'yiq-luma': 'Y + cubic',
+    'yiq-all': 'YIQ',
+}
 
 
 def parse_csv_floats(text):
@@ -57,6 +62,29 @@ def make_model_args(args, a_alpha0):
     )
 
 
+def save_paper_style_plot(rows, modes, out_dir):
+    plt.figure(figsize=(6, 4))
+    for mode in modes:
+        mode_rows = [row for row in rows if row['mode'] == mode]
+        mode_rows.sort(key=lambda row: row['mean_support_size'])
+        if not mode_rows:
+            continue
+        plt.plot(
+            [row['mean_support_size'] for row in mode_rows],
+            [row['mean_psnr_learned'] for row in mode_rows],
+            marker='o',
+            label=MODE_LABELS.get(mode, mode),
+        )
+
+    plt.xlabel('Support size (pixel)')
+    plt.ylabel('PSNR (dB)')
+    plt.title('Performance of image expansion filters')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_dir / 'psnr_vs_support.png', dpi=150)
+    plt.close()
+
+
 def main():
     args = parse_args()
     modes = parse_csv_modes(args.modes)
@@ -100,30 +128,10 @@ def main():
         writer.writeheader()
         writer.writerows(rows)
 
-    for mode in modes:
-        mode_rows = [row for row in rows if row['mode'] == mode]
-        mode_rows.sort(key=lambda row: row['mean_support_size'])
-        plt.figure(figsize=(6, 4))
-        plt.plot(
-            [row['mean_support_size'] for row in mode_rows],
-            [row['mean_psnr_learned'] for row in mode_rows],
-            marker='o',
-            label=mode,
-        )
-        plt.axhline(
-            np.mean([row['mean_psnr_cubic'] for row in mode_rows]),
-            linestyle='--',
-            label='cubic baseline',
-        )
-        plt.xlabel('Support size (low-resolution pixels)')
-        plt.ylabel('Mean PSNR (dB)')
-        plt.title(f'PSNR vs support size: {mode}')
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(out_dir / f'psnr_vs_support_{mode}.png', dpi=150)
-        plt.close()
+    save_paper_style_plot(rows, modes, out_dir)
 
     print(f'Saved {csv_path}')
+    print(f'Saved {out_dir / "psnr_vs_support.png"}')
 
 
 if __name__ == '__main__':
